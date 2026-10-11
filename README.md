@@ -11,6 +11,8 @@ keeps working in a valley with no bars, and the audio never leaves the device. A
 `--offline` flag hard-blocks every non-loopback socket so you can watch it refuse
 to phone home.
 
+![Understory identifying a European Robin offline, then proving the offline guard with its test suite](demo.gif)
+
 ## What the small model is and isn't allowed to say
 
 Asked for plumage, a 1B model invents colours. Asked for a song, it invents calls
@@ -51,9 +53,10 @@ Understory  06:41  [offline guard: on]
   Heard: European Robin (99%)
          also Eurasian Blue Tit (60%)
 
-  Rusty-orange face and breast, thin dark legs. It sings from an exposed perch
-  in the low understory, often before the sun is fully up; the song is a clear
-  rippling warble with a short pause between phrases.
+  It is likely foraging for insects in a woodland area. It is probably
+  searching for a mate or nesting material.
+
+  (AI field note - a hint to look, not a tick on a list.)
 
   logged -> ~/.understory/fieldnotes/2026-10-11.md
 ```
