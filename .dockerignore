@@ -1,0 +1,14 @@
+.venv
+models
+.git
+.gitignore
+__pycache__
+*.pyc
+tests
+fieldnotes
+*.md
+demo.gif
+cover.png
+opencode.json
+submission-template.txt
+setup.sh

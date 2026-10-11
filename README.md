@@ -25,7 +25,7 @@ Want better notes? Swap the model — that is the point of open weights:
 
 ```bash
 # 1B: ~30-45 s per note on 4 CPU cores. The default.
-# 4B: better prose, slower. Just point at another local Gemma:
+# 4B: better prose, ~4.5 min per note on the same CPU. Just point at another local Gemma:
 ollama create understory-gemma-4b -f Modelfile.4b
 .venv/bin/python understory.py listen --seconds 12 --model understory-gemma-4b
 ```

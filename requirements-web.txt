@@ -1,0 +1,4 @@
+# Web demo only. The CLI needs neither Flask nor gunicorn.
+-r requirements.txt
+flask==3.0.3
+gunicorn==22.0.0

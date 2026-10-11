@@ -1,0 +1,5 @@
+# Same weights, same job, baked in at image-build time.
+FROM /models/gemma.gguf
+
+PARAMETER temperature 0.2
+PARAMETER num_ctx 4096

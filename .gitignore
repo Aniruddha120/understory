@@ -7,3 +7,11 @@ __pycache__/
 *.ogg
 *.m4a
 fieldnotes/
+
+# bundled demo clips (CC-licensed, credited in the post)
+!samples/
+!samples/*.mp3
+!samples/*.ogg
+
+# local agent wiring (machine-specific absolute paths)
+opencode.json

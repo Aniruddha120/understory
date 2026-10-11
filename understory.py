@@ -134,6 +134,13 @@ def collapse(detections):
     return sorted(best.values(), key=lambda r: -r["confidence"])
 
 
+def clean_note(text: str) -> str:
+    """Small models love an opener and a numbered list; the card wants neither."""
+    text = re.sub(r"^(certainly|sure|of course|absolutely)\b[!,.:]*\s*", "", text, flags=re.I)
+    text = re.sub(r"(?m)^\s*\d+[).]\s*", "", text)
+    return re.sub(r"\s*\n\s*", " ", text).strip()
+
+
 def narrate(species: list[dict], model: str | None = None, timeout=300) -> str:
     """Ask the local Gemma for a field note. Pure loopback - no cloud call."""
     heard = ", ".join(f"{s['common_name']} ({s['confidence']:.0%})" for s in species[:3])
@@ -148,10 +155,7 @@ def narrate(species: list[dict], model: str | None = None, timeout=300) -> str:
                                  headers={"Content-Type": "application/json"})
     with urllib.request.urlopen(req, timeout=timeout) as resp:
         text = json.load(resp).get("response", "").strip()
-    # small models love an opener and a numbered list; card wants neither
-    text = re.sub(r"^(certainly|sure|of course|absolutely)\b[!,.:]*\s*", "", text, flags=re.I)
-    text = re.sub(r"(?m)^\s*\d+[).]\s*", "", text)
-    return re.sub(r"\s*\n\s*", " ", text).strip()
+    return clean_note(text)
 
 
 def format_card(species: list[dict], note: str | None, offline: bool) -> str:
