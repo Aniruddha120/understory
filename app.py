@@ -18,6 +18,7 @@ import json
 import os
 import tempfile
 import urllib.request
+from contextlib import contextmanager
 from pathlib import Path
 
 from flask import Flask, Response, request, send_file
@@ -25,7 +26,24 @@ from flask import Flask, Response, request, send_file
 from understory import (CONFIDENT, MODEL, OLLAMA, PROMPT, clean_note, identify,
                         offline_guard, save_note)
 
+try:
+    import sentry_sdk
+except ImportError:  # tracing is a demo-only extra; the CLI never needs it
+    sentry_sdk = None
+
 app = Flask(__name__)
+
+# Agent tracing for the pipeline below. Off unless a DSN is set, so the demo
+# runs with or without it. Note this is the one thing the CLI's offline guard
+# would forbid: egress to sentry.io. Here that is deliberate, not an accident.
+if sentry_sdk and os.environ.get("SENTRY_DSN"):
+    sentry_sdk.init(
+        dsn=os.environ["SENTRY_DSN"],
+        traces_sample_rate=float(os.environ.get("SENTRY_TRACES_RATE", "1.0")),
+        send_default_pii=False,
+        environment=os.environ.get("SENTRY_ENVIRONMENT", "understory-demo"),
+    )
+
 SAMPLE_DIR = Path(__file__).parent / "samples"
 MAX_BYTES = 25 * 1024 * 1024  # a field recording, not a dataset
 
@@ -49,11 +67,26 @@ def sample(name):
     return send_file(path)
 
 
+class _NoopSpan:
+    def set_data(self, *a, **k):
+        pass
+
+
+@contextmanager
+def _span(op: str, name: str):
+    """A Sentry span when tracing is on, a no-op when it is not."""
+    if sentry_sdk is None:
+        yield _NoopSpan()
+        return
+    with sentry_sdk.start_span(op=op, name=name) as s:
+        yield s
+
+
 def _sse(obj: dict) -> str:
     return "data: " + json.dumps(obj) + "\n\n"
 
 
-def _stream_note(species: list[dict]):
+def _stream_note(species: list[dict], usage: dict | None = None):
     """Ask the local Gemma and yield the note one token at a time."""
     heard = ", ".join(f"{s['common_name']} ({s['confidence']:.0%})" for s in species[:3])
     body = json.dumps({
@@ -73,6 +106,9 @@ def _stream_note(species: list[dict]):
             if chunk.get("response"):
                 yield chunk["response"]
             if chunk.get("done"):
+                if usage is not None:  # Ollama reports token counts on the last chunk
+                    usage["input_tokens"] = chunk.get("prompt_eval_count")
+                    usage["output_tokens"] = chunk.get("eval_count")
                 break
 
 
@@ -103,7 +139,12 @@ def identify_route():
     def generate():
         try:
             with guard:
-                species = identify(Path(tmp.name), lat=lat, lon=lon)
+                with _span("gen_ai.invoke_agent", "birdnet.identify") as s:
+                    species = identify(Path(tmp.name), lat=lat, lon=lon)
+                    s.set_data("species.count", len(species))
+                    if species:
+                        s.set_data("species.top", species[0]["common_name"])
+                        s.set_data("species.confidence", species[0]["confidence"])
                 yield _sse({"species": species})
                 if not species:
                     yield _sse({"done": True})
@@ -113,10 +154,16 @@ def identify_route():
                     yield _sse({"skipped": True, "confidence": species[0]["confidence"]})
                     yield _sse({"done": True})
                     return
-                parts = []
-                for token in _stream_note(species):
-                    parts.append(token)
-                    yield _sse({"token": token})
+                usage = {}
+                with _span("gen_ai.generate_text", MODEL) as s:
+                    s.set_data("gen_ai.system", "ollama")
+                    s.set_data("gen_ai.request.model", MODEL)
+                    parts = []
+                    for token in _stream_note(species, usage):
+                        parts.append(token)
+                        yield _sse({"token": token})
+                    s.set_data("gen_ai.usage.input_tokens", usage.get("input_tokens"))
+                    s.set_data("gen_ai.usage.output_tokens", usage.get("output_tokens"))
                 note = clean_note("".join(parts))
                 yield _sse({"final": note})  # the tidy card, once the raw stream is done
             try:
