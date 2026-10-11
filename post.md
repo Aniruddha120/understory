@@ -25,7 +25,7 @@ Understory  15:13  [offline guard: on]
 
 ## Demo
 
-There is deliberately no deployed link: the entire point is that it needs no server. These are real runs, with the offline guard switched on.
+No deployed link, on purpose: there is nothing to deploy. A tool whose whole point is that it needs no server is best shown the way you would actually use it, so the demo below is a real run with the offline guard switched on.
 
 ![Understory identifying a European Robin offline, then proving the offline guard by passing its test suite](https://raw.githubusercontent.com/Aniruddha120/understory/main/demo.gif)
 
@@ -59,7 +59,7 @@ Identification alone is **~6 seconds** on a 4-core CPU. The written note adds 30
 
 {% embed https://github.com/Aniruddha120/understory %}
 
-MIT licensed. 281 lines of Python, 61 lines of tests, no framework, no cloud SDK. `./setup.sh` fetches both open models once; after that it runs with the wifi off.
+MIT licensed. 285 lines of Python, 61 lines of tests, no framework, no cloud SDK. `./setup.sh` fetches both open models once; after that it runs with the wifi off.
 
 ## How I Built It
 
