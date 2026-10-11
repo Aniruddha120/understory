@@ -143,6 +143,12 @@ The prompt now asks only for where the bird lives and what it is probably doing 
 
 The notes got shorter, blander, and true. That is the right trade for a tool you are holding up at a bird: a bland true hint tells you where to look, and a confident false one sends you looking for a bird that is not there.
 
+## Taking It Outside
+
+The first real use was my balcony. A sparrow came through, and the ID was right. The screen was on for about two minutes, then the phone went back in my pocket.
+
+That is the whole report: one bird, correctly named, no drama. Which is the standard I would want a field tool judged by — the test is whether it is right when you are actually outside, not whether it is clever on a desk.
+
 ## My Agent Session
 
 Built with OpenCode. The session is saved here:
