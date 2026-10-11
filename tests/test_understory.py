@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
-"""Self-check for TrailGuide's own logic (not the models). Run: python tests/test_trailguide.py"""
+"""Self-check for Understory's own logic (not the models). Run: python tests/test_understory.py"""
 import socket
 import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
-import trailguide as tg
+import understory as tg
 
 
 def test_collapse_keeps_best_hit_per_species():

@@ -1,15 +1,34 @@
-# TrailGuide
+# Understory
 
 Point it at a bird. Keep your phone in your pocket.
 
-TrailGuide listens to a bird, works out what it is with **BirdNET** (open model,
-runs on the CPU), and has **Gemma 3 1B** (open weights, served locally by Ollama)
-write you a short field note: what to look for, where to look, what it is doing.
+Understory listens to a bird, works out what it is with **BirdNET** (open model,
+runs on the CPU), and has **Gemma 3** (open weights, served locally by Ollama)
+write you a short field note: where to look and what the bird is probably doing.
 
 Everything runs on your machine. **No API key, no account, and no internet** — it
 keeps working in a valley with no bars, and the audio never leaves the device. A
 `--offline` flag hard-blocks every non-loopback socket so you can watch it refuse
 to phone home.
+
+## What the small model is and isn't allowed to say
+
+Asked for plumage, a 1B model invents colours. Asked for a song, it invents calls
+(both happened during development). So its job is scoped to the two things it gets
+right reliably: **where the bird lives** and **what it is probably doing**. Markings
+belong in a field guide, and the card says so. The note is a hint to look, not a
+tick on a list.
+
+Want better notes? Swap the model — that is the point of open weights:
+
+```bash
+# 1B: ~30-45 s per note on 4 CPU cores. The default.
+# 4B: better prose, slower. Just point at another local Gemma:
+ollama create understory-gemma-4b -f Modelfile.4b
+.venv/bin/python understory.py listen --seconds 12 --model understory-gemma-4b
+```
+
+No code changes, no new API, no key. One local model replaces another.
 
 ## Why it exists
 
@@ -21,14 +40,14 @@ waiting in a markdown log when you get back to the car.
 
 ```bash
 ./setup.sh                                        # once: python deps + both open models
-.venv/bin/python trailguide.py listen --seconds 12
-.venv/bin/python trailguide.py id recording.m4a --lat 52.52 --lon 13.40
-.venv/bin/python trailguide.py id recording.m4a --offline   # prove it needs no network
-.venv/bin/python trailguide.py notes --last                 # what it heard, off-trail
+.venv/bin/python understory.py listen --seconds 12
+.venv/bin/python understory.py id recording.m4a --lat 52.52 --lon 13.40
+.venv/bin/python understory.py id recording.m4a --offline   # prove it needs no network
+.venv/bin/python understory.py notes --last                 # what it heard, off-trail
 ```
 
 ```
-TrailGuide  06:41  [offline guard: on]
+Understory  06:41  [offline guard: on]
   Heard: European Robin (99%)
          also Eurasian Blue Tit (60%)
 
@@ -36,7 +55,7 @@ TrailGuide  06:41  [offline guard: on]
   in the low understory, often before the sun is fully up; the song is a clear
   rippling warble with a short pause between phrases.
 
-  logged -> ~/.trailguide/fieldnotes/2026-10-11.md
+  logged -> ~/.understory/fieldnotes/2026-10-11.md
 ```
 
 ## How it works
@@ -57,12 +76,12 @@ mic ──► 48 kHz mono WAV ──► BirdNET (TFLite, 6,522 species, CPU) ─
 | Cloud | nothing | — |
 
 `--no-narrate` skips Gemma for a fast identification-only run. If Ollama is not
-running, TrailGuide still identifies the bird and tells you how to start Gemma.
+running, Understory still identifies the bird and tells you how to start Gemma.
 
 ## Tests
 
 ```bash
-.venv/bin/python tests/test_trailguide.py
+.venv/bin/python tests/test_understory.py
 ```
 
 ## Licenses

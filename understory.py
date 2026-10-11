@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""TrailGuide - point it at a bird, keep your phone in your pocket.
+"""Understory - point it at a bird, keep your phone in your pocket.
 
     identify : BirdNET (open model, TFLite, runs on the CPU - no GPU needed)
     narrate  : Gemma 3 1B (open weights, served locally by Ollama)
@@ -7,10 +7,10 @@
 No cloud, no API key, no signal required. Nothing you record leaves the
 machine, and it all keeps working in a valley with no bars.
 
-    ./trailguide.py listen --seconds 12 --lat 52.52 --lon 13.40
-    ./trailguide.py id robin.mp3 --lat 52.52 --lon 13.40
-    ./trailguide.py id mote.wav --offline      # prove it never touches the network
-    ./trailguide.py notes                       # the log it left behind
+    ./understory.py listen --seconds 12 --lat 52.52 --lon 13.40
+    ./understory.py id robin.mp3 --lat 52.52 --lon 13.40
+    ./understory.py id mote.wav --offline      # prove it never touches the network
+    ./understory.py notes                       # the log it left behind
 """
 
 from __future__ import annotations
@@ -32,17 +32,20 @@ from contextlib import contextmanager
 from pathlib import Path
 
 SAMPLE_RATE = 48000
-HOME = Path(os.environ.get("TRAILGUIDE_HOME", Path.home() / ".trailguide"))
+HOME = Path(os.environ.get("UNDERSTORY_HOME", Path.home() / ".understory"))
 NOTES = HOME / "fieldnotes"
 OLLAMA = os.environ.get("OLLAMA_HOST", "http://127.0.0.1:11434").rstrip("/")
-MODEL = os.environ.get("TRAILGUIDE_MODEL", "trailgemma")
+MODEL = os.environ.get("UNDERSTORY_MODEL", "understory-gemma")
 
-PROMPT = """You are a field guide talking to a birder who is looking up at a bird right now, outdoors.
-A microphone just heard: {heard}.
-Write 2 or 3 plain sentences, no markdown, no lists, no title, 60 words at most, telling them:
-1) the field marks to look for, 2) where to look (height, habitat), 3) one song or behaviour cue.
-Be conservative: only state a detail if you are confident it is true of that species.
-Never invent a colour or marking. It is fine to be brief."""
+# Scoped on purpose. A 1B model on a CPU is fluent but shallow: asked for plumage
+# it invents colours, asked for a song it invents calls. Asked only where the bird
+# lives and what it is doing it stays honest. Markings belong in a field guide.
+PROMPT = """A birder has just heard {heard} and is looking up at it right now, in a wood or a garden.
+Write two short sentences, plain text, no lists, no title, no opener:
+1) where this bird usually is and what habitat it favours,
+2) what it is likely to be doing at this moment.
+Use only what you are confident is true of this species. Do not describe its colour,
+its markings or its song - the birder can see and hear it, and markings belong in a field guide."""
 
 
 @contextmanager
@@ -71,12 +74,12 @@ def offline_guard():
 
     def guard(sock, addr):
         if not allowed(addr):
-            raise OSError(f"TrailGuide is offline: blocked connection to {addr!r}")
+            raise OSError(f"Understory is offline: blocked connection to {addr!r}")
         return real_connect(sock, addr)
 
     def guard_ex(sock, addr):
         if not allowed(addr):
-            raise OSError(f"TrailGuide is offline: blocked connection to {addr!r}")
+            raise OSError(f"Understory is offline: blocked connection to {addr!r}")
         return real_connect_ex(sock, addr)
 
     socket.socket.connect, socket.socket.connect_ex = guard, guard_ex
@@ -130,15 +133,15 @@ def collapse(detections):
     return sorted(best.values(), key=lambda r: -r["confidence"])
 
 
-def narrate(species: list[dict], timeout=180) -> str:
+def narrate(species: list[dict], model: str | None = None, timeout=300) -> str:
     """Ask the local Gemma for a field note. Pure loopback - no cloud call."""
     heard = ", ".join(f"{s['common_name']} ({s['confidence']:.0%})" for s in species[:3])
     body = json.dumps({
-        "model": MODEL,
+        "model": model or MODEL,
         "prompt": PROMPT.format(heard=heard),
         "stream": False,
         "keep_alive": "30m",  # a walk is longer than Ollama's default 5m unload
-        "options": {"num_predict": 160, "temperature": 0.3},
+        "options": {"num_predict": 130, "temperature": 0.2},
     }).encode()
     req = urllib.request.Request(f"{OLLAMA}/api/generate", data=body,
                                  headers={"Content-Type": "application/json"})
@@ -152,7 +155,7 @@ def narrate(species: list[dict], timeout=180) -> str:
 def format_card(species: list[dict], note: str | None, offline: bool) -> str:
     stamp = dt.datetime.now().strftime("%H:%M")
     tag = "  [offline guard: on]" if offline else ""
-    lines = [f"TrailGuide  {stamp}{tag}"]
+    lines = [f"Understory  {stamp}{tag}"]
     if not species:
         lines.append("  Nothing bird-shaped in that clip. Try again quieter, or closer.")
         return "\n".join(lines)
@@ -194,7 +197,7 @@ def cmd_id(args) -> int:
         note = None
         if species and not args.no_narrate:
             try:
-                note = narrate(species)
+                note = narrate(species, model=args.model)
             except (urllib.error.URLError, OSError) as e:
                 print(f"(no field note: Gemma is not answering on {OLLAMA} - {e})",
                       file=sys.stderr)
@@ -218,7 +221,7 @@ def cmd_listen(args) -> int:
 def cmd_notes(args) -> int:
     files = sorted(NOTES.glob("*.md"), reverse=True) if NOTES.exists() else []
     if not files:
-        print("no field notes yet. try: ./trailguide.py listen --seconds 12")
+        print("no field notes yet. try: ./understory.py listen --seconds 12")
         return 0
     print(files[0].read_text() if args.last else "\n".join(str(f) for f in files))
     return 0
@@ -233,7 +236,7 @@ class _null:
 
 
 def build_parser():
-    p = argparse.ArgumentParser(prog="trailguide", description=__doc__,
+    p = argparse.ArgumentParser(prog="understory", description=__doc__,
                                 formatter_class=argparse.RawDescriptionHelpFormatter)
     sub = p.add_subparsers(dest="cmd", required=True)
 
@@ -243,6 +246,9 @@ def build_parser():
         sp.add_argument("--min-conf", type=float, default=0.25, help="confidence floor (default 0.25)")
         sp.add_argument("--no-narrate", action="store_true", help="skip Gemma, identification only")
         sp.add_argument("--offline", action="store_true", help="hard-block non-loopback network")
+        sp.add_argument("--model", default=None,
+                        help=f"another local Gemma (default {MODEL}); "
+                             "e.g. --model understory-gemma-4b for better notes, slower")
         return sp
 
     idp = common(sub.add_parser("id", help="identify an existing recording"))
