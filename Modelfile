@@ -1,0 +1,7 @@
+# TrailGuide's narration model: Gemma 3 1B (open weights), run locally by Ollama.
+# setup.sh downloads the GGUF into ./models first, then runs: ollama create trailgemma -f Modelfile
+FROM ./models/gemma-3-1b-it-Q4_K_M.gguf
+
+PARAMETER temperature 0.4
+PARAMETER top_p 0.9
+PARAMETER num_ctx 4096

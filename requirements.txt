@@ -1,0 +1,11 @@
+# Open-source pieces only. No cloud SDK, no API client, no keys.
+#   BirdNET  - the open bird-classification model + TFLite runtime (identification)
+#   librosa  - audio decoding / resampling for whatever file you feed it
+#   resampy  - sample-rate conversion for 44.1 kHz field recordings
+# Gemma runs under Ollama, which is a separate install (see README).
+birdnetlib==0.18.1
+tflite-runtime==2.14.0
+numpy<2
+librosa==0.11.0
+soundfile==0.14.0
+resampy==0.4.3

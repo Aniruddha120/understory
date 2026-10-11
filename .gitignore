@@ -1,0 +1,9 @@
+.venv/
+models/
+__pycache__/
+*.pyc
+*.wav
+*.mp3
+*.ogg
+*.m4a
+fieldnotes/
