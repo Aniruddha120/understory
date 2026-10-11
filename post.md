@@ -143,10 +143,6 @@ The prompt now asks only for where the bird lives and what it is probably doing 
 
 The notes got shorter, blander, and true. That is the right trade for a tool you are holding up at a bird: a bland true hint tells you where to look, and a confident false one sends you looking for a bird that is not there.
 
-## Taking It Outside
-
-<!-- TODO — Aniruddha, fill this in before publishing. What did you hear, where, was the ID right, how long was the screen actually on? Delete this comment. Do not publish the placeholder. -->
-
 ## My Agent Session
 
 Built with OpenCode. The session is saved here:
