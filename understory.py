@@ -32,6 +32,7 @@ from contextlib import contextmanager
 from pathlib import Path
 
 SAMPLE_RATE = 48000
+CONFIDENT = 0.5  # below this we show the hit but refuse to narrate it
 HOME = Path(os.environ.get("UNDERSTORY_HOME", Path.home() / ".understory"))
 NOTES = HOME / "fieldnotes"
 OLLAMA = os.environ.get("OLLAMA_HOST", "http://127.0.0.1:11434").rstrip("/")
@@ -147,9 +148,10 @@ def narrate(species: list[dict], model: str | None = None, timeout=300) -> str:
                                  headers={"Content-Type": "application/json"})
     with urllib.request.urlopen(req, timeout=timeout) as resp:
         text = json.load(resp).get("response", "").strip()
-    # small models love an opener; drop it so the card starts on the bird
-    return re.sub(r"^(certainly|sure|of course|absolutely)\b[!,.:]*\s*", "", text,
-                  flags=re.I).strip()
+    # small models love an opener and a numbered list; card wants neither
+    text = re.sub(r"^(certainly|sure|of course|absolutely)\b[!,.:]*\s*", "", text, flags=re.I)
+    text = re.sub(r"(?m)^\s*\d+[).]\s*", "", text)
+    return re.sub(r"\s*\n\s*", " ", text).strip()
 
 
 def format_card(species: list[dict], note: str | None, offline: bool) -> str:
@@ -195,6 +197,11 @@ def cmd_id(args) -> int:
     with ctx:
         species = identify(src, lat=args.lat, lon=args.lon, min_conf=args.min_conf)
         note = None
+        if species and species[0]["confidence"] < CONFIDENT and not args.no_narrate:
+            # Do not let a small model write confidently about a coin-flip.
+            print(f"(top hit is only {species[0]['confidence']:.0%} - treating it as a guess, "
+                  "no field note)", file=sys.stderr)
+            args.no_narrate = True
         if species and not args.no_narrate:
             try:
                 note = narrate(species, model=args.model)
